@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwasthaNet v2.0</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- App UI -->
+    <div id="app">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="glass-panel">
+            <div class="sidebar-header">
+                <h2>SwasthaNet</h2>
+                <span id="ai-status" class="badge warning">Initializing AI Brain...</span>
+            </div>
+            <ul class="nav-links">
+                <li>
+                    <a href="#" data-target="dashboardScreen" class="active">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:8px;"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-target="profileScreen">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:8px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        Profile
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Header for mobile -->
+            <header class="mobile-header glass-panel">
+                <button id="menu-toggle">☰</button>
+                <h2>SwasthaNet</h2>
+            </header>
+
+            <!-- Disclaimer Screen -->
+            <section id="disclaimerScreen" class="screen active glass-card">
+                <h1>Medical Disclaimer</h1>
+                <p>SwasthaNet v2.0 is an experimental AI tool for personal health tracking and environmental risk intelligence. It is <strong>NOT</strong> a substitute for professional medical advice, diagnosis, or treatment.</p>
+                <p>All data is stored locally on your device.</p>
+                <button id="accept-disclaimer" class="btn primary">I Understand & Accept</button>
+            </section>
+
+            <!-- Profile Screen -->
+            <section id="profileScreen" class="screen hidden glass-card">
+                <h1>Your Profile</h1>
+                <form id="profile-form">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="prof-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Age</label>
+                        <input type="number" id="prof-age" required>
+                    </div>
+                    <div class="form-group">
+                        <label>City (for Weather/AQI)</label>
+                        <input type="text" id="prof-city" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Pre-existing Conditions (e.g., Asthma, Diabetes)</label>
+                        <input type="text" id="prof-conditions">
+                    </div>
+                    <button type="submit" class="btn primary">Save Profile</button>
+                </form>
+
+                <hr style="margin: 25px 0; border: 0; border-top: 1px solid var(--border-color);">
+                <h2>Data Management</h2>
+                <p style="margin-bottom: 15px; font-size: 0.9rem; color: var(--text-muted);">Backup your local data to a file, or restore from a previous backup.</p>
+                <div style="display: flex; gap: 10px;">
+                    <button id="backup-btn" class="btn secondary">Backup Data</button>
+                    <label for="restore-upload" class="btn secondary" style="cursor: pointer; text-align: center; display: inline-flex; align-items: center;">Restore Data</label>
+                    <input type="file" id="restore-upload" accept=".json" style="display: none;">
+                </div>
+            </section>
+
+            <!-- Dashboard Screen -->
+            <section id="dashboardScreen" class="screen hidden">
+                <div class="dashboard-grid">
+                    <!-- Symptom Checker -->
+                    <div class="glass-card symptom-section">
+                        <h2>Symptom Analysis</h2>
+                        <textarea id="symptom-input" rows="3" placeholder="How are you feeling today? (e.g., my head is pounding and I feel hot)"></textarea>
+                        <button id="analyze-btn" class="btn primary">Analyze</button>
+                        <div id="analysis-results" class="results-container"></div>
+                    </div>
+
+                    <!-- Environmental Risk -->
+                    <div class="glass-card env-section">
+                        <h2>Environmental Risk</h2>
+                        <div id="env-data">Loading...</div>
+                        <div id="env-warnings"></div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="glass-card chart-section">
+                        <h2>Health Trends</h2>
+                        <div class="chart-container">
+                            <canvas id="fatigueChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="sleepChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="exertionChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Daily Log -->
+                    <div class="glass-card log-section">
+                        <h2>Daily Log</h2>
+                        <form id="daily-log-form">
+                            <div class="form-group">
+                                <label>Fatigue Level (1-10)</label>
+                                <input type="number" id="log-fatigue" min="1" max="10" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Sleep Hours</label>
+                                <input type="number" id="log-sleep" min="0" max="24" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Exertion Level (1-10)</label>
+                                <input type="number" id="log-exertion" min="1" max="10" required>
+                            </div>
+                            <button type="submit" class="btn secondary">Save Log</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="/notification-service.js"></script>
+    <script type="module" src="/ai-engine.js"></script>
+    <script type="module" src="/app.js"></script>
+</body>
+</html>
