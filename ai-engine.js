@@ -232,6 +232,62 @@ export class AIEngine {
         return results;
     }
 
+    async generateHolisticInsight(profile, logs, envData, recentSymptoms) {
+        // 1. Try Online LLM (Gemini) first for a truly holistic, personalized insight
+        if (this.gemini && navigator.onLine) {
+            try {
+                const prompt = `
+                    You are an expert, empathetic AI health assistant. Generate a holistic health insight for the user based on the following data:
+                    - Profile: Age ${profile.age}, Location: ${profile.city}, Pre-existing conditions: ${profile.conditions || 'None'}.
+                    - Environmental Data: Temp ${envData?.temp}°C, Humidity ${envData?.humidity}%, AQI ${envData?.aqi}.
+                    - Recent Symptoms: ${recentSymptoms || 'None reported recently'}.
+                    - Recent Logs (Averages): Fatigue ${logs?.fatigue?.toFixed(1) || 'N/A'}/10, Sleep ${logs?.sleep?.toFixed(1) || 'N/A'} hrs, Exertion ${logs?.exertion?.toFixed(1) || 'N/A'}/10.
+                    
+                    Provide a concise, 2-3 paragraph summary. Focus on preventative care, how their environment might be affecting their conditions or logs, and actionable advice. Be encouraging.
+                `;
+
+                const response = await this.gemini.models.generateContent({
+                    model: "gemini-3-flash-preview",
+                    contents: prompt,
+                });
+                
+                return response.text.trim();
+            } catch (error) {
+                console.error("Gemini API failed for holistic insight, falling back to local generation:", error);
+            }
+        }
+
+        // 2. Fallback to Local Rule-Based Generation
+        let insight = `Based on your profile as a ${profile.age}-year-old in ${profile.city}, `;
+        
+        if (profile.conditions) {
+            insight += `we note your pre-existing conditions (${profile.conditions}). `;
+        }
+
+        if (envData) {
+            if (envData.aqi > 100) {
+                insight += `The current Air Quality Index is ${envData.aqi} (Poor). Please limit outdoor activities, especially if you have respiratory issues. `;
+            }
+            if (envData.temp > 35) {
+                insight += `It's quite hot today (${envData.temp}°C). Stay hydrated and avoid direct sunlight. `;
+            }
+        }
+
+        if (logs && logs.sleep < 6) {
+            insight += `Your recent sleep average is low (${logs.sleep.toFixed(1)} hours). Prioritizing rest will help improve your fatigue levels and immune system. `;
+        } else if (logs && logs.fatigue > 6) {
+            insight += `You've been reporting high fatigue recently. Consider reducing your exertion levels and ensuring you are well-hydrated. `;
+        } else {
+            insight += `Your recent health logs look stable. Keep up the good work balancing rest and activity. `;
+        }
+
+        if (recentSymptoms) {
+            insight += `Regarding your recent symptoms (${recentSymptoms}), please continue to monitor them and consult a doctor if they persist.`;
+        }
+
+        return insight;
+    }
+
     calculateBaseline(history) {
         if (!history || history.length === 0) return { fatigue: 0, sleep: 0, exertion: 0 };
         const recent = history.slice(-7); // Last 7 days

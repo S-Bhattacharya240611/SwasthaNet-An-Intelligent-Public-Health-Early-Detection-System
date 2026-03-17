@@ -85,11 +85,58 @@ class App {
             this.restoreData(e);
         });
 
+        // Reset Profile
+        const resetBtn = document.getElementById('reset-btn');
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmCancel = document.getElementById('confirmCancel');
+        const confirmOk = document.getElementById('confirmOk');
+
+        if (resetBtn && confirmModal && confirmCancel && confirmOk) {
+            resetBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                confirmModal.classList.remove('hidden');
+            });
+
+            confirmCancel.addEventListener('click', () => {
+                confirmModal.classList.add('hidden');
+            });
+
+            confirmOk.addEventListener('click', () => {
+                this.resetProfile();
+                confirmModal.classList.add('hidden');
+            });
+        }
+
+        // Clear Logs
+        const clearLogsBtn = document.getElementById('clear-logs-btn');
+        const clearLogsModal = document.getElementById('clearLogsModal');
+        const clearLogsCancel = document.getElementById('clearLogsCancel');
+        const clearLogsOk = document.getElementById('clearLogsOk');
+
+        if (clearLogsBtn && clearLogsModal && clearLogsCancel && clearLogsOk) {
+            clearLogsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                clearLogsModal.classList.remove('hidden');
+            });
+
+            clearLogsCancel.addEventListener('click', () => {
+                clearLogsModal.classList.add('hidden');
+            });
+
+            clearLogsOk.addEventListener('click', () => {
+                this.clearLogs();
+                clearLogsModal.classList.add('hidden');
+            });
+        }
+
         // Symptom Analysis
         document.getElementById('analyze-btn').addEventListener('click', async () => {
             const text = document.getElementById('symptom-input').value;
             if (!text) return;
             
+            // Store recent symptoms for holistic insight
+            this.state.recentSymptoms = text;
+
             const btn = document.getElementById('analyze-btn');
             btn.textContent = 'Analyzing...';
             btn.disabled = true;
@@ -100,6 +147,46 @@ class App {
             btn.textContent = 'Analyze';
             btn.disabled = false;
         });
+
+        // Holistic Insight
+        const insightBtn = document.getElementById('generate-insight-btn');
+        if (insightBtn) {
+            insightBtn.addEventListener('click', async () => {
+                const resultsContainer = document.getElementById('insight-results');
+                const description = document.getElementById('insight-description');
+                
+                insightBtn.textContent = '✨ Generating...';
+                insightBtn.disabled = true;
+                resultsContainer.style.display = 'block';
+                resultsContainer.innerHTML = '<div class="spinner"></div><p style="text-align:center; margin-top:10px;">Synthesizing your health profile...</p>';
+                if (description) description.style.display = 'none';
+
+                const baselineLogs = this.aiEngine.calculateBaseline(this.state.logs);
+                
+                try {
+                    const insightText = await this.aiEngine.generateHolisticInsight(
+                        this.state.profile,
+                        baselineLogs,
+                        this.state.envData,
+                        this.state.recentSymptoms
+                    );
+
+                    // Render markdown-like text to HTML
+                    const htmlContent = insightText
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/\n/g, '<br>');
+
+                    resultsContainer.innerHTML = `<p>${htmlContent}</p>`;
+                } catch (err) {
+                    console.error(err);
+                    resultsContainer.innerHTML = `<p style="color: var(--danger);">Failed to generate insight. Please try again.</p>`;
+                }
+
+                insightBtn.textContent = '✨ Generate AI Insight';
+                insightBtn.disabled = false;
+            });
+        }
 
         // Daily Log Form
         document.getElementById('daily-log-form').addEventListener('submit', (e) => {
@@ -135,6 +222,13 @@ class App {
             document.getElementById('prof-age').value = this.state.profile.age || '';
             document.getElementById('prof-city').value = this.state.profile.city || '';
             document.getElementById('prof-conditions').value = this.state.profile.conditions || '';
+        }
+
+        if (screenId === 'dashboardScreen') {
+            // Need a slight delay to ensure DOM is updated and canvas has dimensions
+            setTimeout(() => {
+                this.drawCharts();
+            }, 50);
         }
     }
 
@@ -187,6 +281,59 @@ class App {
         reader.readAsText(file);
     }
 
+    resetProfile() {
+        // Clear local storage
+        localStorage.removeItem('swasthaProfile');
+        localStorage.removeItem('swasthaLogs');
+        
+        // Reset state
+        this.state.profile = null;
+        this.state.logs = [];
+        
+        // Clear forms
+        document.getElementById('profile-form').reset();
+        document.getElementById('daily-log-form').reset();
+        document.getElementById('symptom-input').value = '';
+        document.getElementById('analysis-results').innerHTML = '';
+        
+        // Clear charts
+        const exertionCtx = document.getElementById('exertionChart')?.getContext('2d');
+        if (exertionCtx) exertionCtx.clearRect(0, 0, exertionCtx.canvas.width, exertionCtx.canvas.height);
+        
+        const fatigueCtx = document.getElementById('fatigueChart')?.getContext('2d');
+        if (fatigueCtx) fatigueCtx.clearRect(0, 0, fatigueCtx.canvas.width, fatigueCtx.canvas.height);
+
+        // Show profile screen to force user to set up again
+        this.showScreen('profileScreen');
+        
+        // Optional: show a notification
+        alert('Profile and all health data have been successfully reset.');
+    }
+
+    clearLogs() {
+        // Clear logs from local storage
+        localStorage.removeItem('swasthaLogs');
+        
+        // Reset state
+        this.state.logs = [];
+        
+        // Clear charts
+        const exertionCtx = document.getElementById('exertionChart')?.getContext('2d');
+        if (exertionCtx) exertionCtx.clearRect(0, 0, exertionCtx.canvas.width, exertionCtx.canvas.height);
+        
+        const fatigueCtx = document.getElementById('fatigueChart')?.getContext('2d');
+        if (fatigueCtx) fatigueCtx.clearRect(0, 0, fatigueCtx.canvas.width, fatigueCtx.canvas.height);
+        
+        const sleepCtx = document.getElementById('sleepChart')?.getContext('2d');
+        if (sleepCtx) sleepCtx.clearRect(0, 0, sleepCtx.canvas.width, sleepCtx.canvas.height);
+
+        // Redraw empty charts
+        this.drawCharts();
+
+        // Optional: show a notification
+        alert('Prior logs have been successfully cleared.');
+    }
+
     updateAIStatus(msg, type) {
         this.aiStatusBadge.textContent = msg;
         this.aiStatusBadge.className = `badge ${type}`;
@@ -223,6 +370,12 @@ class App {
             const currentTemp = weatherData.current.temperature_2m;
             const currentHumidity = weatherData.current.relative_humidity_2m;
             const currentAqi = aqiData.current.us_aqi;
+
+            this.state.envData = {
+                temp: currentTemp,
+                humidity: currentHumidity,
+                aqi: currentAqi
+            };
 
             envDiv.innerHTML = `
                 <p><strong>Location:</strong> ${name}</p>
@@ -325,15 +478,18 @@ class App {
         ctx.font = '14px sans-serif';
         ctx.fillText(title, 10, 20);
 
-        if (dataPoints.length < 2) {
-            ctx.fillText("Not enough data", width/2 - 40, height/2);
+        if (dataPoints.length === 0) {
+            ctx.fillText("No data available", width/2 - 50, height/2);
             return;
         }
 
         const maxVal = Math.max(...dataPoints, 10);
         const minVal = 0;
 
-        const getX = (index) => padding + (index * ((width - padding * 2) / (dataPoints.length - 1)));
+        const getX = (index) => {
+            if (dataPoints.length === 1) return width / 2;
+            return padding + (index * ((width - padding * 2) / (dataPoints.length - 1)));
+        };
         const getY = (val) => height - padding - ((val - minVal) / (maxVal - minVal)) * (height - padding * 2);
 
         // Draw axes
@@ -394,12 +550,18 @@ class App {
         ctx.fillStyle = '#3b82f6';
         ctx.fillText("Sleep", width - 60, 20);
 
-        if (data1.length < 2) return;
+        if (data1.length === 0) {
+            ctx.fillText("No data available", width/2 - 50, height/2);
+            return;
+        }
 
         const maxVal = Math.max(...data1, ...data2, 10);
         const minVal = 0;
 
-        const getX = (index) => padding + (index * ((width - padding * 2) / (data1.length - 1)));
+        const getX = (index) => {
+            if (data1.length === 1) return width / 2;
+            return padding + (index * ((width - padding * 2) / (data1.length - 1)));
+        };
         const getY = (val) => height - padding - ((val - minVal) / (maxVal - minVal)) * (height - padding * 2);
 
         // Draw axes
@@ -420,6 +582,14 @@ class App {
         });
         ctx.stroke();
 
+        // Draw points for Line 1
+        ctx.fillStyle = '#f59e0b';
+        data1.forEach((val, i) => {
+            ctx.beginPath();
+            ctx.arc(getX(i), getY(val), 4, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
         // Draw Line 2 (Sleep)
         ctx.beginPath();
         ctx.strokeStyle = '#3b82f6';
@@ -429,6 +599,14 @@ class App {
             else ctx.lineTo(getX(i), getY(val));
         });
         ctx.stroke();
+        
+        // Draw points for Line 2
+        ctx.fillStyle = '#3b82f6';
+        data2.forEach((val, i) => {
+            ctx.beginPath();
+            ctx.arc(getX(i), getY(val), 4, 0, Math.PI * 2);
+            ctx.fill();
+        });
         
         // X-axis labels
         ctx.fillStyle = '#475569';
